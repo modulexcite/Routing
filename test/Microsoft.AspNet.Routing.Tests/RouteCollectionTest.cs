@@ -49,7 +49,38 @@ namespace Microsoft.AspNet.Routing
             Assert.Same(target.Object, pathData.Router);
             Assert.Empty(pathData.DataTokens);
         }
-        
+
+        [Theory]
+        [InlineData(@"Home/Index/23", "/home/index/23/", true)]
+        [InlineData(@"Home/Index/23", "/Home/Index/23", false)]
+        [InlineData(@"Home/Index/23/?Param1=ABC&Param2=Xyz", "/Home/Index/23/?Param1=ABC&Param2=Xyz", true)]
+        [InlineData(@"Home/Index/23?Param1=ABC&Param2=Xyz", "/Home/Index/23/?Param1=ABC&Param2=Xyz", true)]
+        [InlineData(@"Home/Index/23#Param1=ABC&Param2=Xyz", "/Home/Index/23#Param1=ABC&Param2=Xyz", false)]
+        [InlineData(@"Home/Index/23#Param1=ABC&Param2=Xyz", "/Home/Index/23/#Param1=ABC&Param2=Xyz", true)]
+        public void GetVirtualPath_CanAppendTrailingSlash_BasedOnOptions(
+            string returnUrl,
+            string expectedUrl,
+            bool appendTrailingSlash)
+        {
+            // Arrange
+            var target = new Mock<IRouter>(MockBehavior.Strict);
+            target
+                .Setup(e => e.GetVirtualPath(It.IsAny<VirtualPathContext>()))
+                .Returns(new VirtualPathData(target.Object, returnUrl));
+
+            var routeCollection = new RouteCollection();
+            routeCollection.Add(target.Object);
+            var virtualPathContext = CreateVirtualPathContext(options: GetRouteOptions(appendTrailingSlash: appendTrailingSlash));
+
+            // Act
+            var pathData = routeCollection.GetVirtualPath(virtualPathContext);
+
+            // Assert
+            Assert.Equal(new PathString(expectedUrl), pathData.VirtualPath);
+            Assert.Same(target.Object, pathData.Router);
+            Assert.Empty(pathData.DataTokens);
+        }
+
         [Theory]
         [InlineData(@"\u0130", @"/\u0130", true)]
         [InlineData(@"\u0049", @"/\u0049", true)]
@@ -114,7 +145,7 @@ namespace Microsoft.AspNet.Routing
                 Assert.Equal(dataToken.Value, pathData.DataTokens[dataToken.Key]);
             }
         }
-        
+
         [Fact]
         public async Task RouteAsync_FirstMatches()
         {
@@ -225,7 +256,7 @@ namespace Microsoft.AspNet.Routing
             // Assert
             Assert.Null(stringVirtualPath);
         }
-        
+
         [Fact]
         public void NamedRouteTests_GetNamedRoute_AmbiguousRoutesInCollection_DoesNotThrowForUnambiguousRoute()
         {
@@ -245,7 +276,7 @@ namespace Microsoft.AspNet.Routing
             Assert.Equal("Route1", namedRouter.Name);
             Assert.Empty(pathData.DataTokens);
         }
-        
+
         [Fact]
         public void NamedRouteTests_GetNamedRoute_AmbiguousRoutesInCollection_ThrowsForAmbiguousRoute()
         {
@@ -880,11 +911,16 @@ namespace Microsoft.AspNet.Routing
             return target;
         }
 
-        private static RouteOptions GetRouteOptions(bool lowerCaseUrls = false, bool useBestEffortLinkGeneration = true)
+        private static RouteOptions GetRouteOptions(
+            bool lowerCaseUrls = false,
+            bool useBestEffortLinkGeneration = true,
+            bool appendTrailingSlash = false)
         {
             var routeOptions = new RouteOptions();
             routeOptions.LowercaseUrls = lowerCaseUrls;
             routeOptions.UseBestEffortLinkGeneration = useBestEffortLinkGeneration;
+            routeOptions.AppendTrailingSlash = appendTrailingSlash;
+
             return routeOptions;
         }
     }
