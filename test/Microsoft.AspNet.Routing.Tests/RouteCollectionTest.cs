@@ -20,46 +20,21 @@ namespace Microsoft.AspNet.Routing
     public class RouteCollectionTest
     {
         [Theory]
-        [InlineData(@"Home/Index/23", "/home/index/23", true)]
-        [InlineData(@"Home/Index/23", "/Home/Index/23", false)]
-        [InlineData(@"Home/Index/23?Param1=ABC&Param2=Xyz", "/Home/Index/23?Param1=ABC&Param2=Xyz", false)]
-        [InlineData(@"Home/Index/23?Param1=ABC&Param2=Xyz", "/home/index/23?Param1=ABC&Param2=Xyz", true)]
-        [InlineData(@"Home/Index/23#Param1=ABC&Param2=Xyz", "/Home/Index/23#Param1=ABC&Param2=Xyz", false)]
-        [InlineData(@"Home/Index/23#Param1=ABC&Param2=Xyz", "/home/index/23#Param1=ABC&Param2=Xyz", true)]
-        public void GetVirtualPath_CanLowerCaseUrls_BasedOnOptions(
-            string returnUrl,
-            string lowercaseUrl,
-            bool lowercaseUrls)
-        {
-            // Arrange
-            var target = new Mock<IRouter>(MockBehavior.Strict);
-            target
-                .Setup(e => e.GetVirtualPath(It.IsAny<VirtualPathContext>()))
-                .Returns(new VirtualPathData(target.Object, returnUrl));
-
-            var routeCollection = new RouteCollection();
-            routeCollection.Add(target.Object);
-            var virtualPathContext = CreateVirtualPathContext(options: GetRouteOptions(lowercaseUrls));
-
-            // Act
-            var pathData = routeCollection.GetVirtualPath(virtualPathContext);
-
-            // Assert
-            Assert.Equal(new PathString(lowercaseUrl), pathData.VirtualPath);
-            Assert.Same(target.Object, pathData.Router);
-            Assert.Empty(pathData.DataTokens);
-        }
-
-        [Theory]
-        [InlineData(@"Home/Index/23", "/home/index/23/", true)]
-        [InlineData(@"Home/Index/23", "/Home/Index/23", false)]
-        [InlineData(@"Home/Index/23/?Param1=ABC&Param2=Xyz", "/Home/Index/23/?Param1=ABC&Param2=Xyz", true)]
-        [InlineData(@"Home/Index/23?Param1=ABC&Param2=Xyz", "/Home/Index/23/?Param1=ABC&Param2=Xyz", true)]
-        [InlineData(@"Home/Index/23#Param1=ABC&Param2=Xyz", "/Home/Index/23#Param1=ABC&Param2=Xyz", false)]
-        [InlineData(@"Home/Index/23#Param1=ABC&Param2=Xyz", "/Home/Index/23/#Param1=ABC&Param2=Xyz", true)]
-        public void GetVirtualPath_CanAppendTrailingSlash_BasedOnOptions(
+        [InlineData(@"Home/Index/23", "/home/index/23", true, false)]
+        [InlineData(@"Home/Index/23", "/Home/Index/23", false, false)]
+        [InlineData(@"Home/Index/23", "/home/index/23/", true, true)]
+        [InlineData(@"Home/Index/23", "/Home/Index/23/", false, true)]
+        [InlineData(@"Home/Index/23?Param1=ABC&Param2=Xyz", "/Home/Index/23/?Param1=ABC&Param2=Xyz", false, true)]
+        [InlineData(@"Home/Index/23?Param1=ABC&Param2=Xyz", "/Home/Index/23?Param1=ABC&Param2=Xyz", false, false)]
+        [InlineData(@"Home/Index/23?Param1=ABC&Param2=Xyz", "/home/index/23/?Param1=ABC&Param2=Xyz", true, true)]
+        [InlineData(@"Home/Index/23#Param1=ABC&Param2=Xyz", "/Home/Index/23/#Param1=ABC&Param2=Xyz", false, true)]
+        [InlineData(@"Home/Index/23#Param1=ABC&Param2=Xyz", "/home/index/23#Param1=ABC&Param2=Xyz", true, false)]
+        [InlineData(@"Home/Index/23/?Param1=ABC&Param2=Xyz", "/home/index/23/?Param1=ABC&Param2=Xyz", true, true)]
+        [InlineData(@"Home/Index/23/#Param1=ABC&Param2=Xyz", "/home/index/23/#Param1=ABC&Param2=Xyz", true, false)]
+        public void GetVirtualPath_CanLowerCaseUrls_And_AppendTrailingSlash_BasedOnOptions(
             string returnUrl,
             string expectedUrl,
+            bool lowercaseUrls,
             bool appendTrailingSlash)
         {
             // Arrange
@@ -70,7 +45,11 @@ namespace Microsoft.AspNet.Routing
 
             var routeCollection = new RouteCollection();
             routeCollection.Add(target.Object);
-            var virtualPathContext = CreateVirtualPathContext(options: GetRouteOptions(appendTrailingSlash: appendTrailingSlash));
+            var virtualPathContext = CreateVirtualPathContext(
+                options: GetRouteOptions(
+                    lowerCaseUrls: lowercaseUrls,
+                    useBestEffortLinkGeneration: true,
+                    appendTrailingSlash: appendTrailingSlash));
 
             // Act
             var pathData = routeCollection.GetVirtualPath(virtualPathContext);
